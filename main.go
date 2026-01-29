@@ -1,3 +1,5 @@
+//go:build darwin
+
 package main
 
 import (
@@ -5,45 +7,53 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"golang.design/x/clipboard"
 )
 
 // Empty struct for tool args since we don't need any input parameters
 type emptyArgs struct{}
 
 func pasteClipboard(ctx context.Context, req *mcp.CallToolRequest, args emptyArgs) (*mcp.CallToolResult, any, error) {
-	// Create temp directory
-	tempDir := fmt.Sprintf("/tmp/claude-clipboard-%d", time.Now().Unix())
+	// Read image data from clipboard
+	imgData := clipboard.Read(clipboard.FmtImage)
+	if len(imgData) == 0 {
+		return nil, nil, fmt.Errorf("no image data in clipboard")
+	}
+
+	// Create temp directory using os.TempDir() for cross-platform compatibility
+	tempDir := filepath.Join(os.TempDir(), fmt.Sprintf("claude-clipboard-%d", time.Now().Unix()))
 	if err := os.MkdirAll(tempDir, 0755); err != nil {
 		return nil, nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
 
-	// Run paste-cb script in the temp directory
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ~/bin/paste-cb", tempDir))
-	if err := cmd.Run(); err != nil {
-		return nil, nil, fmt.Errorf("failed to run paste-cb: %w", err)
-	}
+	// Generate filename with timestamp
+	timestamp := time.Now().Format("2006-01-02-150405")
+	filename := fmt.Sprintf("screenshot-%s.png", timestamp)
+	outPath := filepath.Join(tempDir, filename)
 
-	// Find the pasted file
-	files, err := filepath.Glob(filepath.Join(tempDir, "*"))
-	if err != nil || len(files) == 0 {
-		return nil, nil, fmt.Errorf("no files found in temp directory")
+	// Write image to file
+	if err := os.WriteFile(outPath, imgData, 0644); err != nil {
+		return nil, nil, fmt.Errorf("failed to write file: %w", err)
 	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{
-				Text: fmt.Sprintf("Screenshot saved to: %s", files[0]),
+				Text: fmt.Sprintf("Screenshot saved to: %s", outPath),
 			},
 		},
 	}, nil, nil
 }
 
 func main() {
+	if err := clipboard.Init(); err != nil {
+		log.Fatalf("Failed to init clipboard: %v", err)
+	}
+
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "clipboard-paste",
 		Version: "1.0.0",

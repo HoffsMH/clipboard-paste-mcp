@@ -14,8 +14,13 @@
 # Go workspace file
 go.work
 
-# Binary
-clipboard-paste-mcp
+# Project binaries
+/clipboard-paste-mcp
+/paste-cb
+/poc/poc
+
+# macOS
+.DS_Store
 
 # IDE
 .idea/
