@@ -11,37 +11,39 @@ This server exposes a tool called `paste_clipboard_screenshot` that:
 
 ## Setup
 
-### 1. Build the MCP Server
+### Quick Install
+
+Clone the repo and run the install script:
 
 ```bash
-cd ~/code/unpaid/clipboard-paste-mcp
-go build -o clipboard-paste-mcp
+git clone https://github.com/HoffsMH/clipboard-paste-mcp.git
+cd clipboard-paste-mcp
+./install.sh
 ```
 
-### 2. Add to Claude Code
+The install script will:
+1. Build the MCP server binary
+2. Register it with Claude Code at **user scope** (available system-wide in all directories)
 
-The server is already configured at the **user scope** (available in all projects):
-
-```bash
-claude mcp list
-# Should show: clipboard-paste-mcp: ✓ Connected
-```
-
-If you need to add it manually:
-
-```bash
-claude mcp add --scope user --transport stdio clipboard-paste-mcp -- \
-  /Users/mh/code/unpaid/clipboard-paste-mcp/clipboard-paste-mcp
-```
-
-### 3. Verify Configuration
+### Verify Installation
 
 ```bash
 # List all MCP servers
 claude mcp list
+# Should show: clipboard-paste-mcp: ✓ Connected
 
 # Get details about this server
 claude mcp get clipboard-paste-mcp
+```
+
+### Manual Installation
+
+If you prefer to install manually:
+
+```bash
+go build -o clipboard-paste-mcp
+claude mcp add --scope user --transport stdio clipboard-paste-mcp -- \
+  "$(pwd)/clipboard-paste-mcp"
 ```
 
 ## Usage
